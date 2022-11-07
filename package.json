@@ -1,0 +1,18 @@
+{
+  "name": "files-monitoring",
+  "version": "1.0.0",
+  "description": "This script monitors files on cloud storage",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint ./src/**/*.ts"
+  },
+  "author": "linyows",
+  "repository": "https://github.com/linyows/files-monitoring",
+  "devDependencies": {
+    "@google/clasp": "latest",
+    "@types/google-apps-script": "latest"
+  },
+  "tslintIgnore": [
+    "**/node_modules/**"
+  ]
+}
