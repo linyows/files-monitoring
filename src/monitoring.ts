@@ -2,7 +2,7 @@
  * Cloud Storage Files Monitoring
  */
 import S3, { Config as S3Config } from './s3'
-import Slack from './slack'
+import Slack, { Attachment } from './slack'
 
 export default class Monitoring {
   run (config: Config) {
@@ -20,6 +20,7 @@ export default class Monitoring {
     const configTimeColumn = 1
     const configBucketColumn = 2
     const configPrefixColumn = 3
+    const configLabelColumn = 4
 
     const bucketNameColumn = 0
     const bucketIdColumn = 1
@@ -59,9 +60,10 @@ export default class Monitoring {
         bucket: line[configBucketColumn],
         prefix: buildPrefix(prefxTemplate),
         result: [],
+        label: line[configLabelColumn],
         channel: line[configChannelColumn],
         s3: { accessKeyId, secretAccessKey, region },
-      }
+      } as Task
       tasks.push(task)
     }
 
@@ -160,6 +162,8 @@ const notify = (tasks: Task[], s: SlackSettings) => {
   }
 
   const slack = new Slack(s.token)
+  const consoleUrl = 'https://s3.console.aws.amazon.com/s3/buckets'
+  const awsIconUrl = 'https://raw.githubusercontent.com/linyows/files-monitoring/main/misc/amazon.png'
 
   for (const channel in tasksPerChannel) {
     const attachments = []
@@ -169,22 +173,22 @@ const notify = (tasks: Task[], s: SlackSettings) => {
       if (failure === false && success === false) {
         failure = true
       }
-      const fields = []
       /* too verbose?
+      const fields = []
       for (const content of task.result) {
         fields.push({ title: 'Bucket', value: task.bucket, short: true })
         fields.push({ title: 'Last Modified', value: content.lastModified, short: true })
         fields.push({ title: 'Size', value: content.size, short: true })
       }*/
       attachments.push({
-        title: `${task.prefix}`,
+        title: ``,
         color: `${success ? '#36a64f' : '#cc0033'}`,
-        text: `${success ? '' : 'Hmm, file not found!? :thinking:'}`,
-        fields,
+        text: `${task.label} \`${task.prefix}\`${success ? '' : '\nHmm, file not found!? :thinking:'}`,
+        footer: `${task.bucket} on <${consoleUrl}|AWS S3>`,
+        footer_icon: awsIconUrl,
       })
     }
     const text = `${s.text}${failure ? ' ' + s.failureMessage : ''}${s.suffixMessage}`
-    const consoleUrl = 'https://s3.console.aws.amazon.com/s3/buckets'
     try {
       slack.postMessage({
         channel,
@@ -192,8 +196,6 @@ const notify = (tasks: Task[], s: SlackSettings) => {
         icon_emoji: s.iconEmoji,
         link_names: 1,
         text,
-        footer: `AWS S3 | <${consoleUrl}|Console>`,
-        footer_icon: 'https://cdn.icon-icons.com/icons2/2407/PNG/512/aws_icon_146237.png',
         attachments: JSON.stringify(attachments),
       })
     } catch (e) {
@@ -212,6 +214,7 @@ type Task = {
   prefix: string
   result: Contents[]
   channel: string
+  label: string
   s3: S3Config
 }
 

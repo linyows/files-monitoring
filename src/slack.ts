@@ -107,8 +107,6 @@
     icon_emoji?: string
     link_names: number
     text: string
-    footer: string
-    footer_icon: string
     attachments?: string
   }
   
