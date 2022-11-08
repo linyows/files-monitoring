@@ -21,6 +21,7 @@ export default class Monitoring {
     const configBucketColumn = 2
     const configPrefixColumn = 3
     const configLabelColumn = 4
+    const configAllowEmptyColumn = 5
 
     const bucketNameColumn = 0
     const bucketIdColumn = 1
@@ -61,6 +62,7 @@ export default class Monitoring {
         prefix: buildPrefix(prefxTemplate),
         result: [],
         label: line[configLabelColumn],
+        allowEmpty: !!line[configAllowEmptyColumn],
         channel: line[configChannelColumn],
         s3: { accessKeyId, secretAccessKey, region },
       } as Task
@@ -170,7 +172,7 @@ const notify = (tasks: Task[], s: SlackSettings) => {
     let failure = false
     for (const task of tasksPerChannel[channel]) {
       const success = task.result.length > 0
-      if (failure === false && success === false) {
+      if (failure === false && success === false && task.allowEmpty === false) {
         failure = true
       }
       /* too verbose?
@@ -182,8 +184,8 @@ const notify = (tasks: Task[], s: SlackSettings) => {
       }*/
       attachments.push({
         title: ``,
-        color: `${success ? '#36a64f' : '#cc0033'}`,
-        text: `${task.label} \`${task.prefix}\`${success ? '' : '\nHmm, file not found!? :thinking:'}`,
+        color: `${success ? '#36a64f' : `${task.allowEmpty ? '#0099ff' : '#cc0033'}`}`,
+        text: `${task.label} \`${task.prefix}\`${success || task.allowEmpty ? '' : '\nHmm, file not found!? :thinking:'}`,
         footer: `${task.bucket} on <${consoleUrl}|AWS S3>`,
         footer_icon: awsIconUrl,
       })
@@ -215,6 +217,7 @@ type Task = {
   result: Contents[]
   channel: string
   label: string
+  allowEmpty: boolean
   s3: S3Config
 }
 
